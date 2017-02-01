@@ -10,6 +10,7 @@ import { Container, Header, Title, InputGroup, Input, Content, Footer, FooterTab
 import lightTheme from './Themes/light'
 import Home from './views/Home'
 import Categories from './views/Categories'
+import Search from './views/Search'
 
 export default class Movies extends Component {
   
@@ -28,9 +29,11 @@ export default class Movies extends Component {
     
   	if(this.state.screen == 0) {
   		AppComponent = Home
-  	} else {
+  	} else if(this.state.screen == 1) {
   		AppComponent = Categories
-  	}               
+  	} else {
+        AppComponent = Search
+    }               
    
     return (
         <Container theme={lightTheme} style={{backgroundColor: '#191916'}}>
@@ -52,8 +55,12 @@ export default class Movies extends Component {
                         <Icon name='ios-home' />
                     </Button>
             		<Button active={this.state.screen == 1} onPress={() => this.switchScreen(1)}>                            
-                        Categories
+                        Genres
                         <Icon name='ios-apps' />
+                    </Button>
+                    <Button active={this.state.screen == 2} onPress={() => this.switchScreen(2)}>                            
+                        Search
+                        <Icon name='ios-search' />
                     </Button>
             	</FooterTab>
             </Footer>
