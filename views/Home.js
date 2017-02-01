@@ -1,11 +1,13 @@
 import React, { Component } from 'react';
-import { AppRegistry, StyleSheet, Image, AlertIOS, View, ScrollView, Linking} from 'react-native'
+import { AppRegistry, StyleSheet, Image, AlertIOS, View, ScrollView, Linking, WebView} from 'react-native'
 import { Col, Row, Grid } from 'react-native-easy-grid';
 import { Container, Title, Content, Card, CardItem, Thumbnail, Icon, Button, Text, Spinner, List, ListItem, H3 } from 'native-base';
 
 import Modal from 'react-native-modalbox';
+// import Modal from 'react-native-simple-modal';
 import Api from '../src/api.js';
 import axios from 'axios';
+
 var moviesList = [];
 var BASE_URL = 'https://yts.ag/api/v2/list_movies.json';
 var window = require('Dimensions').get('window');
@@ -14,7 +16,16 @@ var {height, width} = require('Dimensions').get('window');
 class Home extends Component {
     constructor(props) {
     	super(props);
-    	this.state = {moviesList: '', selectedMovie: '', isLoading: true, isOpen: false, swipeToClose: true, isDisabled: false, sliderValue: 0.3};
+    	this.state = {
+          moviesList: '', 
+          selectedMovie: '', 
+          isLoading: true, 
+          webViewInitiated: false, 
+          isOpen: false, 
+          swipeToClose: true, 
+          isDisabled: false,
+          sliderValue: 0.3
+        };
     }
     
 	componentDidMount() {
@@ -47,22 +58,25 @@ class Home extends Component {
     }
   
     _onPressMovieItem(movieItem) {
-          var movieItem = movieItem;
-          this.setState({selectedMovie: movieItem});
-          this.refs.modal1.open();
-    }
+        var movieItem = movieItem;
+        this.setState({selectedMovie: movieItem});
+        this.refs.modal1.open();
+    }     
   
     _closeModal() {
-          this.refs.modal1.close();        
+        this.refs.modal1.close();        
     }
 
 	render() {        
         if(this.state.isLoading) {
             return this.renderLoadingView();
         }
+        if(this.state.webViewInitiated) {
+            return this.renderIMDBLinkView();
+        }
 		return (
             <View>
-			<ScrollView>
+			<ScrollView ref={"listScrollView"} pagingEnabled={true}>
 	            <List dataArray={this.state.moviesList}
                       renderRow={(item) => 
                       <ListItem button style={styles.movieItem} onPress={(movieItem) => this._onPressMovieItem(item)}>
@@ -71,51 +85,70 @@ class Home extends Component {
                         <Text note>{item.summary.substring(0,200)}...</Text>
                       </ListItem>
                 }>                  
-                </List>
-                 <Modal style={styles.modalStyle} ref={"modal1"} position={'top'} swipeToClose={this.state.swipeToClose}>
-                     <View>
-                         <ScrollView centerContent={true}>
-                         <Grid>
-                              <Row style={{paddingTop: 10}}>
-                                  <Col size={85}>
-                                      <H3 style={styles.modalTitle}>{this.state.selectedMovie == '' ? '': this.state.selectedMovie.title}</H3>
-                                  </Col>
-                                  <Col size={15}>
-                                      <Button onPress={() => this._closeModal()} transparent style={{marginRight: 0}}>                                        			                           
-                                          <Icon name='ios-close-outline' style={{fontSize: 35, color: '#ffffff'}} />
-                                      </Button>
-                                  </Col>
-                              </Row>
-                             <Row style={{padding: 10}}>
-                                 <View>
-                                     <Thumbnail square style={{width: width - 20, height: 150}} source={{uri: this.state.selectedMovie.modalImage}} />
-                                 </View>
-                             </Row>  
-                             <Row style={{padding: 10}}>
-                                 <Col>
-                                     <Text style={{color: '#ffffff'}}>Released in {this.state.selectedMovie.year}</Text>
-                                 </Col>                                 
-                                 <Col>
-                                     <Text style={{color: '#ffffff'}}>Language - {this.state.selectedMovie.language}</Text>
-                                 </Col>                                                                
-                             </Row>
-                             <Row style={{padding: 10}}>
-                                 <Text style={{color: '#ffffff'}}>Rating - {this.state.selectedMovie.rating}</Text>
-                             </Row>
-                             <Row style={{padding: 10}}>
-                                 <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.summary}</Text>
-                             </Row>
-                             <Row style={{padding: 10}}>
-                                 <Text style={{color: '#3c65b9'}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + this.state.selectedMovie.imdbCode)}>IMDB Link</Text>
-                             </Row>
-                         </Grid>
-                       </ScrollView>
-                   </View>
+                </List>                 
+            </ScrollView>            
+              <Modal style={styles.modalStyle} ref={"modal1"} position={'top'} swipeToClose={this.state.swipeToClose}>
+                          {/*<Modal 
+                  offset={this.state.offset}
+                  open={this.state.open}
+                  overlayBackground={'rgba(0, 0, 0, 0.75)'}
+                  modalStyle={{backgroundColor: '#191916'}} 
+                  modalDidOpen={() => console.log('modal did open')}
+                  modalDidClose={() => this.setState({open: false})}
+              >*/}
+              <View>
+                <ScrollView ref={"modalScrollView"}>
+                  <Grid>
+                    <Row style={{paddingTop: 10}}>
+                      <Col size={85}>
+                        <H3 style={styles.modalTitle}>{this.state.selectedMovie == '' ? '': this.state.selectedMovie.title}</H3>
+                      </Col>
+                      <Col size={15}>
+                        <Button onPress={() => this._closeModal()} transparent style={{marginRight: 0}}>                                        			                           
+                          <Icon name='ios-close-outline' style={{fontSize: 35, color: '#ffffff'}} />
+                        </Button>
+                      </Col>
+                    </Row>
+                    <Row style={{padding: 10}}>
+                      <View>
+                        <Thumbnail square style={{width: width - 20, height: 150}} source={{uri: this.state.selectedMovie.modalImage}} />
+                      </View>
+                    </Row>  
+                    <Row style={{padding: 10}}>
+                      <Col>
+                        <Text style={{color: '#ffffff'}}>Released in {this.state.selectedMovie.year}</Text>
+                      </Col>                                 
+                      <Col>
+                        <Text style={{color: '#ffffff'}}>Language - {this.state.selectedMovie.language}</Text>
+                      </Col>                                                                
+                    </Row>
+                    <Row style={{padding: 10}}>
+                      <Text style={{color: '#ffffff'}}>Rating - {this.state.selectedMovie.rating}</Text>
+                    </Row>
+                    <Row style={{padding: 10}}>
+                      <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.summary}</Text>
+                    </Row>
+                    <Row style={{padding: 10}}>
+                      <Text style={{color: '#3c65b9'}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + this.state.selectedMovie.imdbCode)}>IMDB Link</Text>
+                    </Row>
+                  </Grid>
+                </ScrollView>
+              </View>
                 </Modal>
-            </ScrollView>
           </View>
 		);
 	}
+  
+    renderIMDBLinkView() {
+        return (
+          <View>
+            <WebView
+                source={{uri: 'http://www.imdb.com/title/' + this.state.selectedMovie.imdbCode}}
+                style={{marginTop: 20}}
+            />
+          </View>
+        )
+    }
   
     renderLoadingView() {
         return (          
@@ -133,7 +166,7 @@ const styles = StyleSheet.create({
     modalStyle: {
         backgroundColor: '#191916', 
         flex: 1,
-        flexDirection: 'column',
+        alignItems: 'center'
     },
     modalTitle: {
         marginLeft: 20,

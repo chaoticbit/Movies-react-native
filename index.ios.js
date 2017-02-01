@@ -6,7 +6,7 @@
 
 import React, { Component } from 'react';
 import { AppRegistry, StyleSheet, StatusBar, View } from 'react-native';
-import { Container, Header, Title, Content, Tabs, Footer, FooterTab, Icon, Button, Text, Badge } from 'native-base';
+import { Container, Header, Title, InputGroup, Input, Content, Footer, FooterTab, Icon, Button, Text, Badge } from 'native-base';
 import lightTheme from './Themes/light'
 import Home from './views/Home'
 import Categories from './views/Categories'
@@ -20,18 +20,18 @@ export default class Movies extends Component {
 
   switchScreen(index) {
   		this.setState({screen: index})
-  }	
+  }	    
 
   render() {
 
-  	let AppComponent = Home;
-
+  	let AppComponent = Home;   
+    
   	if(this.state.screen == 0) {
   		AppComponent = Home
   	} else {
   		AppComponent = Categories
-  	}
-
+  	}               
+   
     return (
         <Container theme={lightTheme} style={{backgroundColor: '#191916'}}>
             <View>
@@ -41,17 +41,17 @@ export default class Movies extends Component {
             </View>
             <Header inverse>            	
             	<Title>Movies</Title>
-            </Header>            	
+            </Header> 
             <Content> 
             	<AppComponent/> 
             </Content>
             <Footer theme={lightTheme}>
             	<FooterTab>
-            		<Button onPress={() => this.switchScreen(0)}>                                        			
+            		<Button active={this.state.screen == 0} onPress={() => this.switchScreen(0)}>                                        			
                         Home
                         <Icon name='ios-home' />
                     </Button>
-            		<Button onPress={() => this.switchScreen(1)}>                            
+            		<Button active={this.state.screen == 1} onPress={() => this.switchScreen(1)}>                            
                         Categories
                         <Icon name='ios-apps' />
                     </Button>
@@ -61,5 +61,19 @@ export default class Movies extends Component {
     );
   }
 }
+
+const styles = StyleSheet.create({
+      headbarNotFocused: {
+          paddingHorizontal: 0
+      },
+      searchInputGroup: {
+          backgroundColor: '#191916',
+          borderWidth: 0
+      },
+      searchInputGroupFocused: {
+          backgroundColor: '#555555',
+          borderWidth: 0            
+      }
+});
 
 AppRegistry.registerComponent('Movies', () => Movies);
