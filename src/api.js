@@ -7,7 +7,7 @@ function sortByDate(a, b) {
 
 module.exports = {
 
-	getUpcomingMovies: function(page){
+	getUpcomingMovies: function(page) {
 		console.log(page + ' in api call');
 		var REQUEST_URL = 'https://api.themoviedb.org/3/movie/upcoming?api_key=01082f35da875726ce81a65b79c1d08c&page='+page;
     	return fetch(REQUEST_URL)
@@ -17,7 +17,7 @@ module.exports = {
 	        	return responseData.results;
 			});
 	},
-	getSearchResults: function(param){
+	getSearchResults: function(param) {
 		var REQUEST_URL = 'https://api.themoviedb.org/3/search/movie?api_key=01082f35da875726ce81a65b79c1d08c&query='+param;
 		return fetch(REQUEST_URL)
 			.then((response) => response.json())
@@ -25,7 +25,7 @@ module.exports = {
 				return responseData.results;
 			});
 	},
-	getMovieGenres: function(){
+	getMovieGenres: function() {
 		var REQUEST_URL = 'https://api.themoviedb.org/3/genre/movie/list?api_key=01082f35da875726ce81a65b79c1d08c';
 		return fetch(REQUEST_URL)
 			.then((response) => response.json())
@@ -33,7 +33,15 @@ module.exports = {
 				return responseData.genres;
 			})
 	},
-	getMovieDetails: function(id){
+    getMovieByGenre: function(id, page) {
+        var REQUEST_URL = 'https://api.themoviedb.org/3/genre/' + id + '/movies?api_key=01082f35da875726ce81a65b79c1d08c&page=' + page;
+        return fetch(REQUEST_URL)
+            .then((response) => response.json())
+            .then((responseData) => {
+                return responseData.results;
+            })
+    },
+	getMovieDetails: function(id) {
 		var REQUEST_URL = 'https://api.themoviedb.org/3/movie/'+ id +'?api_key=01082f35da875726ce81a65b79c1d08c';
 		return fetch(REQUEST_URL)
 			.then((response) => response.json())
@@ -41,7 +49,7 @@ module.exports = {
 				return responseData;
 			})		
 	},
-	getPopularMovies: function(page){
+	getPopularMovies: function(page) {
 		var REQUEST_URL = "http://api.themoviedb.org/3/movie/popular?api_key=01082f35da875726ce81a65b79c1d08c&page="+page;
 		return fetch(REQUEST_URL)
 			.then((response) => response.json())

@@ -1,14 +1,13 @@
 import React, { Component } from 'react';
-import { AppRegistry, StyleSheet, View, ScrollView, AlertIOS, Linking, ActivityIndicatorIOS } from 'react-native'
+import { AppRegistry, StyleSheet, View, Image, ScrollView, AlertIOS, Linking, ActivityIndicatorIOS } from 'react-native'
 import { Col, Row, Grid } from 'react-native-easy-grid';
 import Modal from 'react-native-modalbox';
 import { Container, Title, Content, Icon, Button, Text, List, ListItem, InputGroup, Input, Thumbnail, H3 } from 'native-base';
 import axios from 'axios';
+import Api from '../src/api.js';
 
 var {height, width} = require('Dimensions').get('window');
 var moviesList = [];
-var SEARCH_URL = 'https://www.omdbapi.com/?s=';
-var GET_MOVIE_INFO_URL = 'https://www.omdbapi.com/?i=';
 
 class Search extends Component {
     
@@ -17,45 +16,34 @@ class Search extends Component {
         this.state = {
             searchKey: '',
             searchResults: '',
-            isLoading: false,
-            selectedMovie: ''
-        }
+            isSearching: false,
+            isLoadingModal: false,
+            selectedMovie: '',
+            page: 1
+        }        
     }
   
     onKeyUpSearch(key) {
         if(key == '') {
-            this.setState({searchKey: '', searchResults: '', isLoading: false});
-        }
-        this.setState({searchKey: key, isLoading: true});        
-        var _this = this;
-		axios.get(SEARCH_URL + key + '&type=movie')
-        .then(function(response) {
-          var obj = response.data;    
-          if(obj.Search) {
-              for(var i = 0; i < obj.Search.length; i++) {            
-                moviesList[i] = {
-                  "title": obj.Search[i].Title,
-                  "thumbnail": obj.Search[i].Poster,
-                  "year": obj.Search[i].Year,
-                  "imdbCode": obj.Search[i].imdbID
-                };
-            }
-            _this.setState({searchResults: moviesList, isLoading: false});
-         }
-      })       
+            this.setState({searchKey: '', searchResults: '', isSearching: false});
+        }      
+        this.setState({searchKey: key, isSearching: true});        
+        var _this = this;            
+        Api.getSearchResults(key)
+          .then((data) => {
+              if(data.length > 0) {
+                  _this.setState({searchResults: data, isSearching: false});
+              }
+          });		     
     }
   
-    _onPressMovieItem(item) {
-        var imdbID = item.imdbCode;
-        
-        var _this = this;
-        axios.get(GET_MOVIE_INFO_URL + imdbID + '&tomatoes=true')
-        .then(function(response) {
-            var movieItem = response.data;
-            _this.setState({selectedMovie: movieItem});
-            _this.refs.modal1.open();
-        })
-      
+    _onPressMovieItem(movieItem) {
+        this.setState({isLoadingModal: true});
+        Api.getMovieDetails(movieItem.id)
+          .then((data) => {
+              this.setState({selectedMovie: data, isLoadingModal: false});
+              this.refs.modal1.open();
+        });   
     }
   
     _closeModal() {
@@ -67,32 +55,38 @@ class Search extends Component {
       if(this.state.searchKey!== '') {
           var ClearTextComponent = (<Icon name='ios-close-circle' onPress={() => this.setState({searchKey: '', searchResults: ''})} style={styles.searchInputIcon}/>)
       }
+//       if(this.state.isSearching) {
+//           return this.renderIsSearchingView();          
+//       }
+      if(this.state.isLoadingModal) {
+          return this.renderModalLoadingView();
+      }
 
         return (
             <View style={{paddingBottom: 120, position: 'absolute', height: height, top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'column', flex: 1}}>
                 <InputGroup style={{position: 'absolute'}}>
                    <Icon name='ios-search' style={styles.searchInputIcon}/>
-                   <Input placeholder='Search movies, series, episodes' style={{color: '#ffffff'}} value={this.state.searchKey} onChangeText={(text) => this.onKeyUpSearch(text)} />
+                   <Input ref={'searchInput'} placeholder='Search movies, series, episodes' style={{color: '#333333'}} value={this.state.searchKey} onChangeText={(text) => this.onKeyUpSearch(text)} />
                   {ClearTextComponent}
                 </InputGroup>      
                 <ScrollView style={{marginTop: 50}}>
                     <List dataArray={this.state.searchResults}
-                        renderRow={(item) => 
+                      renderRow={(item) => 
                       <ListItem button style={styles.movieItem} onPress={(movieItem) => this._onPressMovieItem(item)}>
-                        <Thumbnail square size={70} source={{uri: item.thumbnail}} />
+                        <Thumbnail square size={80} style={{height: 100}} source={{uri: "https://image.tmdb.org/t/p/w185" + item.poster_path}} />
                         <Text style={styles.movieName}>{item.title}</Text>
-                        <Text note style={{width: 110}}>Released on {item.year}</Text>
-                        <Text style={{color: '#3c65b9', width: 100}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + item.imdbCode)}>IMDB Link</Text>
+                        <Text note style={{color: '#333333'}}>{item.overview.substring(0,130)}...</Text>
                       </ListItem>
-                  }>   
-                  </List>
+                }>                  
+                </List>  
                 </ScrollView>  
-                <Modal style={styles.modalStyle} ref={"modal1"} position={'top'}>                      
+                <Modal style={styles.modalStyle} ref={"modal1"} position={'top'} swipeToClose={this.state.swipeToClose}>                      
                 <ScrollView ref={"modalScrollView"}>
                   <Grid>
                     <Row style={{paddingTop: 10}}>
                       <Col size={85}>
-                        <H3 style={styles.modalTitle}>{this.state.selectedMovie.Title}</H3>
+                        <H3 style={styles.modalTitle}>{this.state.selectedMovie == '' ? '': this.state.selectedMovie.title}</H3>
+                        <Text note style={{fontStyle: 'italic', color: '#cccccc',paddingHorizontal: 20}}>{this.state.selectedMovie.tagline}</Text>
                       </Col>
                       <Col size={15}>
                         <Button onPress={() => this._closeModal()} transparent style={{marginRight: 0}}>                                        			                           
@@ -100,47 +94,47 @@ class Search extends Component {
                         </Button>
                       </Col>
                     </Row>
-                    <Row style={{paddingTop: 5, paddingHorizontal: 10}}>
-                      <Col size={30}>
-                        <Thumbnail square size={80} source={{uri: this.state.selectedMovie.Poster}} />
-                      </Col>
-                      <Col size={70}>
-                          <Text note style={{color: '#ffffff'}}>Released on {this.state.selectedMovie.Released}</Text>
-                          <Text note style={{color: '#ffffff'}}>Runtime - {this.state.selectedMovie.Runtime}</Text>
-                          <Text note style={{color: '#ffffff'}}>IMDB Rating - {this.state.selectedMovie.imdbRating}</Text>
-                      </Col>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <View>
+                        <Thumbnail square style={{width: width - 40, height: 150}} source={{uri: "https://image.tmdb.org/t/p/w185" + this.state.selectedMovie.backdrop_path}} />
+                      </View>
                     </Row>  
-                    <Row style={{paddingTop: 5, paddingHorizontal: 10}}>
-                        <Text style={{color: '#ffffff'}}>Actors - {this.state.selectedMovie.Actors}</Text>                                                                                           
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Col>
+                        <Text style={{color: '#ffffff'}}>Released in {this.state.selectedMovie.release_date}</Text>
+                      </Col>                                 
+                      <Col>
+                        <Text style={{color: '#ffffff', textAlign: 'right'}}>Language - {this.state.selectedMovie.original_language}</Text>
+                      </Col>                                                                
                     </Row>
-                    <Row style={{paddingTop: 5, paddingHorizontal: 10}}>
-                      <Text style={{color: '#ffffff'}}>Genre - {this.state.selectedMovie.Genre}</Text>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Col>
+                          <Text style={{color: '#ffffff'}}>Vote average - {this.state.selectedMovie.vote_average}</Text>
+                      </Col>                      
+                      <Col>
+                          <Text style={{color: '#ffffff'}}>Runtime - {this.state.selectedMovie.runtime} minutes</Text>
+                      </Col>
                     </Row>
-                    <Row style={{paddingTop: 5, paddingHorizontal: 10}}>
-                      <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.Plot}</Text>
-                    </Row>                    
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.overview}</Text>
+                    </Row>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Text style={{color: '#3c65b9'}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + this.state.selectedMovie.imdb_id)}>IMDB Link</Text>
+                    </Row>
                   </Grid>
                 </ScrollView>
                 </Modal>
             </View>
             )
-    }
+    }    
   
-    /*renderLoadingView() {
+    renderModalLoadingView() {
         return (
-            <View>
-            <ActivityIndicatorIOS
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              animating={true}
-              size={'small'}
-              color={'white'}
-            />
-          </View>
+            <View style={styles.modalLoading}>
+                <Image source={require('../img/video_camera_loader.gif')} style={{marginTop: -150}} />
+            </View>          
         )
-    }*/
+    }      
 }
 
 const styles = StyleSheet.create({
@@ -153,19 +147,32 @@ const styles = StyleSheet.create({
     txtcenter: {
 		textAlign: 'center'
 	},
-    modalTitle: {
-        marginLeft: 10,
-        marginTop: 5,
-        color: '#ffffff'
-    },
     modalStyle: {
         backgroundColor: 'rgb(28,48,64)',         
         alignItems: 'center',   
+        height: height,
         flex: 1,
         overflow: 'hidden'
     },
-    movieName: {
+    modalTitle: {
+        marginLeft: 20,
+        marginTop: 5,
         color: '#ffffff'
+    },
+    loading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    modalLoading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(170,208,197,0.9)',
+        height: height
+    },
+    movieName: {
+        color: '#333333'
     },
     movieItem: {
         marginLeft: 0, 
@@ -173,13 +180,8 @@ const styles = StyleSheet.create({
         paddingTop: 7,
         paddingRight: 7,
         paddingBottom: 7,
-    },
-    categoryItem: {
-        marginLeft: 0, 
-        paddingLeft: 20,
-        paddingTop: 15,
-        paddingRight: 10,
-        paddingBottom: 15
+        borderBottomColor: '#cccccc',
+        borderBottomWidth: 0.5
     }
 });
 
