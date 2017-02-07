@@ -36,13 +36,13 @@ export default class Movies extends Component {
     }               
    
     return (
-        <Container theme={lightTheme} style={{backgroundColor: '#191916'}}>
+        <Container theme={lightTheme}>
             <View>
             <StatusBar 
               barStyle='light-content'
             />
             </View>
-            <Header inverse>            	
+            <Header>            	
             	<Title>Movies</Title>
             </Header> 
             <Content> 

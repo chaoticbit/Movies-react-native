@@ -126,7 +126,7 @@ topTabBarBorderColor:_reactNative.Platform.OS==='ios'?'#007aff':'#fff',
 
 
 iosToolbarBtnColor:'#007aff',
-toolbarDefaultBg:_reactNative.Platform.OS==='ios'?'#111111':'#4179F7',
+toolbarDefaultBg:_reactNative.Platform.OS==='ios'?'rgb(28,48,64)':'#4179F7',
 toolbarHeight:_reactNative.Platform.OS==='ios'?64:56,
 toolbarIconSize:_reactNative.Platform.OS==='ios'?20:22,
 toolbarInputColor:'#CECDD2',

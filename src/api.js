@@ -1,51 +1,52 @@
-var BASE_URL = 'https://yts.ag/api/v2/list_movies.json';
-import { AlertIOS } from 'react-native';
-import axios from 'axios';
+// var REQUEST_URL = 'http://api.themoviedb.org/3/search/movie?api_key=01082f35da875726ce81a65b79c1d08c&query=batman';
+import React, { Component } from 'react';
 
-//  async function getMoviesFromApi() {
-//         try {
-//             let response = await fetch('https://facebook.github.io/react-native/movies.json');
-//             let responseJson = await response.json();
-//             return responseJson.movies;
-// //             AlertIOS.alert(
-// //                 "Response",
-// //                 "result -> " + JSON.stringify(responseJson.movies)
-// //             );
-//         } catch(error) {
-//             console.error(error);
-//         }
-// }
-
-exports.getMoviesList = function() {    
-  
-    axios.get(BASE_URL)
-      .then(function(response) {
-        var obj = response.data;
-        var moviesList = [];
-      
-        for(var i = 0; i < obj.movies.length; i++) {
-            moviesList.push(obj.movies[i]);
-        }
-      
-//         AlertIOS.alert(
-//             "Response",
-//             "list -> " + moviesList
-//         )
-        return moviesList;
-      })
-      .catch(function(error) {
-        console.error(error);
-      });
+function sortByDate(a, b) {
+//     return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
 }
 
-// <Card style={{ flex: 0 }}>
-// 	                <CardItem>	                    
-// 	                    <Text>NativeBase</Text>
-// 	                </CardItem>
-// 	                <CardItem cardBody> 
-// 	                    <Image style={{ resizeMode: 'cover', width: null}} source={require('../img/sj.jpg')} /> 
-// 	                    <Text>
-// 	                        Here's to the crazy ones. {this.state.moviesList.length}
-// 	                    </Text>	                    
-// 	                </CardItem>
-// 	           </Card>
+module.exports = {
+
+	getUpcomingMovies: function(page){
+		console.log(page + ' in api call');
+		var REQUEST_URL = 'https://api.themoviedb.org/3/movie/upcoming?api_key=01082f35da875726ce81a65b79c1d08c&page='+page;
+    	return fetch(REQUEST_URL)
+      		.then((response) => response.json())
+      		.then((responseData) => {
+      			console.log(responseData.results)
+	        	return responseData.results;
+			});
+	},
+	getSearchResults: function(param){
+		var REQUEST_URL = 'https://api.themoviedb.org/3/search/movie?api_key=01082f35da875726ce81a65b79c1d08c&query='+param;
+		return fetch(REQUEST_URL)
+			.then((response) => response.json())
+			.then((responseData) => {
+				return responseData.results;
+			});
+	},
+	getMovieGenres: function(){
+		var REQUEST_URL = 'https://api.themoviedb.org/3/genre/movie/list?api_key=01082f35da875726ce81a65b79c1d08c';
+		return fetch(REQUEST_URL)
+			.then((response) => response.json())
+			.then((responseData) => {
+				return responseData.genres;
+			})
+	},
+	getMovieDetails: function(id){
+		var REQUEST_URL = 'https://api.themoviedb.org/3/movie/'+ id +'?api_key=01082f35da875726ce81a65b79c1d08c';
+		return fetch(REQUEST_URL)
+			.then((response) => response.json())
+			.then((responseData) => {
+				return responseData;
+			})		
+	},
+	getPopularMovies: function(page){
+		var REQUEST_URL = "http://api.themoviedb.org/3/movie/popular?api_key=01082f35da875726ce81a65b79c1d08c&page="+page;
+		return fetch(REQUEST_URL)
+			.then((response) => response.json())
+			.then((responseData) => {
+				return responseData.results;
+			})
+	}
+};

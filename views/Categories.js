@@ -19,7 +19,7 @@ class Categories extends Component {
                 <List dataArray={genreList}
                       renderRow={(item) => 
                       <ListItem style={styles.categoryItem} button>
-                          <Text style={{color: '#fff'}}>{item}</Text>
+                          <Text style={{color: '#333333'}}>{item}</Text>
                       </ListItem>
                 }>   
                 </List>
@@ -38,7 +38,8 @@ const styles = StyleSheet.create({
         paddingLeft: 20,
         paddingTop: 15,
         paddingRight: 10,
-        paddingBottom: 15
+        paddingBottom: 15,
+        borderBottomWidth: 0.5
     }
 });
 

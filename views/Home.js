@@ -20,47 +20,41 @@ class Home extends Component {
           moviesList: '', 
           selectedMovie: '', 
           isLoading: true, 
+          isLoadingModal: false,
           webViewInitiated: false, 
           isOpen: false, 
           swipeToClose: true, 
           isDisabled: false,
-          sliderValue: 0.3
+          sliderValue: 0.3,
+          page: 1
         };
+        this.reloadData = this.reloadData.bind(this);
+        this._onPressMovieItem = this._onPressMovieItem.bind(this);
     }
     
 	componentDidMount() {
-        var _this = this;
-		axios.get(BASE_URL)
-        .then(function(response) {
-          var obj = response.data.data;                     
-          for(var i = 0; i < obj.movies.length; i++) {            
-            moviesList[i] = {
-              "title": obj.movies[i].title,
-              "summary": (obj.movies[i].summary),
-              "thumbnail": (obj.movies[i].small_cover_image).replace(/\\/g, ""),
-              "modalImage": (obj.movies[i].medium_cover_image).replace(/\\/g, ""),              
-              "year": obj.movies[i].year,
-              "genres": obj.movies[i].genres,
-              "rating": obj.movies[i].rating,
-              "language": obj.movies[i].language,
-              "imdbCode": obj.movies[i].imdb_code
-            };
-        }
-        _this.setState({moviesList: moviesList, isLoading: false});
-      })
-      .catch(function(error) {
-        console.error(error);
-      });
+        setTimeout(this.reloadData, 2000);
 	}
+    
+    reloadData() {
+        Api.getUpcomingMovies(this.state.page)
+          .then((data) => {
+              moviesList = data;
+              this.setState({moviesList: moviesList, isLoading: false});
+        });
+    }
   
     toggleSwipeToClose() {
         this.setState({swipeToClose: !this.state.swipeToClose});
     }
   
-    _onPressMovieItem(movieItem) {
-        var movieItem = movieItem;
-        this.setState({selectedMovie: movieItem});
-        this.refs.modal1.open();
+    _onPressMovieItem(movieItem) {  
+        this.setState({isLoadingModal: true});
+        Api.getMovieDetails(movieItem.id)
+          .then((data) => {
+              this.setState({selectedMovie: data, isLoadingModal: false});
+              this.refs.modal1.open();
+        });
     }     
   
     _closeModal() {
@@ -71,37 +65,29 @@ class Home extends Component {
         if(this.state.isLoading) {
             return this.renderLoadingView();
         }
-        if(this.state.webViewInitiated) {
-            return this.renderIMDBLinkView();
+        if(this.state.isLoadingModal) {
+            return this.renderModalLoadingView();
         }
 		return (
-            <View>
-			<ScrollView ref={"listScrollView"} pagingEnabled={true}>
+            <View style={{paddingBottom: 120, position: 'absolute', height: height, top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'column', flex: 1}}>            
+            <ScrollView ref={"listScrollView"}>
 	            <List dataArray={this.state.moviesList}
                       renderRow={(item) => 
                       <ListItem button style={styles.movieItem} onPress={(movieItem) => this._onPressMovieItem(item)}>
-                        <Thumbnail square size={80} source={{uri: item.thumbnail}} />
+                        <Thumbnail square size={80} style={{height: 100}} source={{uri: "https://image.tmdb.org/t/p/w185" + item.poster_path}} />
                         <Text style={styles.movieName}>{item.title}</Text>
-                        <Text note>{item.summary.substring(0,200)}...</Text>
+                        <Text note style={{color: '#333333'}}>{item.overview.substring(0,130)}...</Text>
                       </ListItem>
                 }>                  
-                </List>                 
-            </ScrollView>            
-              <Modal style={styles.modalStyle} ref={"modal1"} position={'top'} swipeToClose={this.state.swipeToClose}>
-                          {/*<Modal 
-                  offset={this.state.offset}
-                  open={this.state.open}
-                  overlayBackground={'rgba(0, 0, 0, 0.75)'}
-                  modalStyle={{backgroundColor: '#191916'}} 
-                  modalDidOpen={() => console.log('modal did open')}
-                  modalDidClose={() => this.setState({open: false})}
-              >*/}
-              <View>
+                </List>                                        
+            </ScrollView>   
+            <Modal style={styles.modalStyle} ref={"modal1"} position={'top'} swipeToClose={this.state.swipeToClose}>                      
                 <ScrollView ref={"modalScrollView"}>
                   <Grid>
                     <Row style={{paddingTop: 10}}>
                       <Col size={85}>
                         <H3 style={styles.modalTitle}>{this.state.selectedMovie == '' ? '': this.state.selectedMovie.title}</H3>
+                        <Text note style={{fontStyle: 'italic', color: '#cccccc',paddingHorizontal: 20}}>{this.state.selectedMovie.tagline}</Text>
                       </Col>
                       <Col size={15}>
                         <Button onPress={() => this._closeModal()} transparent style={{marginRight: 0}}>                                        			                           
@@ -109,31 +95,35 @@ class Home extends Component {
                         </Button>
                       </Col>
                     </Row>
-                    <Row style={{padding: 10}}>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
                       <View>
-                        <Thumbnail square style={{width: width - 20, height: 150}} source={{uri: this.state.selectedMovie.modalImage}} />
+                        <Thumbnail square style={{width: width - 40, height: 150}} source={{uri: "https://image.tmdb.org/t/p/w185" + this.state.selectedMovie.backdrop_path}} />
                       </View>
                     </Row>  
-                    <Row style={{padding: 10}}>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
                       <Col>
-                        <Text style={{color: '#ffffff'}}>Released in {this.state.selectedMovie.year}</Text>
+                        <Text style={{color: '#ffffff'}}>Released in {this.state.selectedMovie.release_date}</Text>
                       </Col>                                 
                       <Col>
-                        <Text style={{color: '#ffffff'}}>Language - {this.state.selectedMovie.language}</Text>
+                        <Text style={{color: '#ffffff', textAlign: 'right'}}>Language - {this.state.selectedMovie.original_language}</Text>
                       </Col>                                                                
                     </Row>
-                    <Row style={{padding: 10}}>
-                      <Text style={{color: '#ffffff'}}>Rating - {this.state.selectedMovie.rating}</Text>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Col>
+                          <Text style={{color: '#ffffff'}}>Vote average - {this.state.selectedMovie.vote_average}</Text>
+                      </Col>                      
+                      <Col>
+                          <Text style={{color: '#ffffff'}}>Runtime - {this.state.selectedMovie.runtime} minutes</Text>
+                      </Col>
                     </Row>
-                    <Row style={{padding: 10}}>
-                      <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.summary}</Text>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Text style={{color: '#ffffff'}}>{this.state.selectedMovie.overview}</Text>
                     </Row>
-                    <Row style={{padding: 10}}>
-                      <Text style={{color: '#3c65b9'}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + this.state.selectedMovie.imdbCode)}>IMDB Link</Text>
+                    <Row style={{padding: 10, paddingHorizontal: 20}}>
+                      <Text style={{color: '#3c65b9'}} onPress={() => Linking.openURL('http://www.imdb.com/title/' + this.state.selectedMovie.imdb_id)}>IMDB Link</Text>
                     </Row>
                   </Grid>
                 </ScrollView>
-              </View>
                 </Modal>
           </View>
 		);
@@ -157,6 +147,14 @@ class Home extends Component {
             </View>          
         )
     }
+    
+    renderModalLoadingView() {
+        return (
+            <View style={styles.modalLoading}>
+                <Image source={require('../img/video_camera_loader.gif')} style={{marginTop: -150}} />
+            </View>          
+        )
+    }
 }
 
 const styles = StyleSheet.create({
@@ -164,9 +162,11 @@ const styles = StyleSheet.create({
 		textAlign: 'center'
 	},
     modalStyle: {
-        backgroundColor: '#191916', 
+        backgroundColor: 'rgb(28,48,64)',         
+        alignItems: 'center',   
+        height: height,
         flex: 1,
-        alignItems: 'center'
+        overflow: 'hidden'
     },
     modalTitle: {
         marginLeft: 20,
@@ -178,15 +178,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     },
+    modalLoading: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(170,208,197,0.9)',
+        height: height
+    },
     movieName: {
-        color: '#ffffff'
+        color: '#333333'
     },
     movieItem: {
         marginLeft: 0, 
         paddingLeft: 10,
         paddingTop: 7,
         paddingRight: 7,
-        paddingBottom: 7
+        paddingBottom: 7,
+        borderBottomColor: '#cccccc',
+        borderBottomWidth: 0.5
     },
     modal: {
     },
